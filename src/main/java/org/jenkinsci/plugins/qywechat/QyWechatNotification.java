@@ -64,10 +64,8 @@ public class QyWechatNotification extends Publisher implements SimpleBuildStep {
         }
         this.projectName = build.getProject().getFullDisplayName();
         BuildBeginInfo buildInfo = new BuildBeginInfo(this.projectName, build, config);
-
         String req = buildInfo.toJSONString();
         listener.getLogger().println("推送通知" + req);
-
         //执行推送
         push(listener.getLogger(), config.webhookUrl, req, config);
         return true;
@@ -187,6 +185,7 @@ public class QyWechatNotification extends Publisher implements SimpleBuildStep {
             String val = NotificationUtil.replaceMultipleEnvValue(config.mentionedMobile, envVars);
             config.mentionedMobile = val;
         }
+
         return config;
     }
 

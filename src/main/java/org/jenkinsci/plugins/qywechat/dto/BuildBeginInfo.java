@@ -1,5 +1,7 @@
 package org.jenkinsci.plugins.qywechat.dto;
 
+import hudson.scm.ChangeLogSet;
+import org.apache.commons.compress.changes.ChangeSet;
 import org.jenkinsci.plugins.qywechat.NotificationUtil;
 import org.jenkinsci.plugins.qywechat.model.NotificationConfig;
 import hudson.model.AbstractBuild;
@@ -7,16 +9,19 @@ import hudson.model.ParameterValue;
 import hudson.model.ParametersAction;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 开始构建的通知信息
+ *
  * @author jiaju
+ * @implNote 更新：增加修改记录输出
  */
 public class BuildBeginInfo {
+    private static Logger logger = LoggerFactory.getLogger(BuildBeginInfo.class);
 
     /**
      * 请求参数
@@ -43,31 +48,36 @@ public class BuildBeginInfo {
      */
     private String topicName = "";
 
-    public BuildBeginInfo(String projectName, AbstractBuild<?, ?> build, NotificationConfig config){
+    /**
+     * 本次修改记录
+     */
+    private String changeLog = "";
+
+    public BuildBeginInfo(String projectName, AbstractBuild<?, ?> build, NotificationConfig config) {
         //获取请求参数
         List<ParametersAction> parameterList = build.getActions(ParametersAction.class);
-        if(parameterList!=null && parameterList.size()>0){
-            for(ParametersAction p : parameterList){
-                for(ParameterValue pv : p.getParameters()){
+        if (parameterList != null && parameterList.size() > 0) {
+            for (ParametersAction p : parameterList) {
+                for (ParameterValue pv : p.getParameters()) {
                     this.params.put(pv.getName(), pv.getValue());
                 }
             }
         }
         //预计时间
-        if(build.getProject().getEstimatedDuration()>0){
+        if (build.getProject().getEstimatedDuration() > 0) {
             this.durationTime = build.getProject().getEstimatedDuration();
         }
         //控制台地址
         StringBuilder urlBuilder = new StringBuilder();
         String jenkinsUrl = NotificationUtil.getJenkinsUrl();
-        if(StringUtils.isNotEmpty(jenkinsUrl)){
+        if (StringUtils.isNotEmpty(jenkinsUrl)) {
             String buildUrl = build.getUrl();
             urlBuilder.append(jenkinsUrl);
-            if(!jenkinsUrl.endsWith("/")){
+            if (!jenkinsUrl.endsWith("/")) {
                 urlBuilder.append("/");
             }
             urlBuilder.append(buildUrl);
-            if(!buildUrl.endsWith("/")){
+            if (!buildUrl.endsWith("/")) {
                 urlBuilder.append("/");
             }
             urlBuilder.append("console");
@@ -76,42 +86,56 @@ public class BuildBeginInfo {
         //工程名称
         this.projectName = projectName;
         //环境名称
-        if(config.topicName!=null){
+        if (config.topicName != null) {
             topicName = config.topicName;
         }
+        //修改记录
+        List<ChangeLogSet<?>> changeSets = build.getChangeSets();
+        StringBuffer stringBuffer = new StringBuffer();
+        for (ChangeLogSet<?> changeLogSet : changeSets) {
+            for (Object item : changeLogSet.getItems()) {
+                if (item instanceof ChangeLogSet.Entry) {
+                    ChangeLogSet.Entry entry = (ChangeLogSet.Entry) item;
+                    stringBuffer.append("【提交id】" + entry.getCommitId() + "【提交描述】:" + entry.getMsg() + "【提交人】:" + entry.getAuthor());
+                }
+            }
+        }
+        this.changeLog = stringBuffer.toString();
     }
 
-    public String toJSONString(){
+    public String toJSONString() {
         //参数组装
         StringBuffer paramBuffer = new StringBuffer();
-        params.forEach((key, val)->{
+        params.forEach((key, val) -> {
             paramBuffer.append(key);
             paramBuffer.append("=");
             paramBuffer.append(val);
             paramBuffer.append(", ");
         });
-        if(paramBuffer.length()==0){
+        if (paramBuffer.length() == 0) {
             paramBuffer.append("无");
-        }else{
-            paramBuffer.deleteCharAt(paramBuffer.length()-2);
+        } else {
+            paramBuffer.deleteCharAt(paramBuffer.length() - 2);
         }
 
         //耗时预计
         String durationTimeStr = "无";
-        if(durationTime>0){
+        if (durationTime > 0) {
             Long l = durationTime / (1000 * 60);
             durationTimeStr = l + "分钟";
         }
 
         //组装内容
         StringBuilder content = new StringBuilder();
-        if(StringUtils.isNotEmpty(topicName)){
+        if (StringUtils.isNotEmpty(topicName)) {
             content.append(this.topicName);
         }
         content.append("<font color=\"info\">【" + this.projectName + "】</font>开始构建\n");
         content.append(" >构建参数：<font color=\"comment\">" + paramBuffer.toString() + "</font>\n");
-        content.append(" >预计用时：<font color=\"comment\">" +  durationTimeStr + "</font>\n");
-        if(StringUtils.isNotEmpty(this.consoleUrl)){
+        content.append(" >预计用时：<font color=\"comment\">" + durationTimeStr + "</font>\n");
+        content.append(" >本次更新内容：<font color=\"comment\"></font>\n");
+        content.append("<font color=\"comment\">" + this.changeLog + "</font>\n");
+        if (StringUtils.isNotEmpty(this.consoleUrl)) {
             content.append(" >[查看控制台](" + this.consoleUrl + ")");
         }
 
@@ -125,7 +149,6 @@ public class BuildBeginInfo {
         String req = JSONObject.fromObject(data).toString();
         return req;
     }
-
 
 
 }
