@@ -13,6 +13,7 @@ import java.util.Map;
 
 /**
  * `@`用户的通知
+ *
  * @author jiaju
  */
 public class BuildMentionedInfo {
@@ -27,33 +28,33 @@ public class BuildMentionedInfo {
      */
     private String mentionedMobile = "";
 
-    public BuildMentionedInfo(Run<?, ?> run, NotificationConfig config){
+    public BuildMentionedInfo(Run<?, ?> run, NotificationConfig config) {
         //通知ID
-        if(config.mentionedId!=null){
+        if (config.mentionedId != null) {
             mentionedId = config.mentionedId;
         }
         //通知手机号码
-        if(config.mentionedMobile!=null) {
+        if (config.mentionedMobile != null) {
             mentionedMobile = config.mentionedMobile;
         }
     }
 
-    public String toJSONString(){
+    public String toJSONString() {
         List<String> mentionedIdList = new ArrayList<>();
-        if(StringUtils.isNotEmpty(mentionedId)){
-            String []ids = mentionedId.split(",");
-            for(String id : ids){
-                if("all".equals(id.toLowerCase())){
+        if (StringUtils.isNotEmpty(mentionedId)) {
+            String[] ids = mentionedId.split(",");
+            for (String id : ids) {
+                if ("all".equals(id.toLowerCase())) {
                     id = "@all";
                 }
                 mentionedIdList.add(id);
             }
         }
         List<String> mentionedMobileList = new ArrayList<>();
-        if(StringUtils.isNotEmpty(mentionedMobile)){
-            String []mobiles = mentionedMobile.split(",");
-            for(String mobile : mobiles){
-                if("all".equals(mobile.toLowerCase())){
+        if (StringUtils.isNotEmpty(mentionedMobile)) {
+            String[] mobiles = mentionedMobile.split(",");
+            for (String mobile : mobiles) {
+                if ("all".equals(mobile.toLowerCase())) {
                     mobile = "@all";
                 }
                 mentionedMobileList.add(mobile);

@@ -1,18 +1,22 @@
 package org.jenkinsci.plugins.qywechat.dto;
 
-import hudson.scm.ChangeLogSet;
-import org.apache.commons.compress.changes.ChangeSet;
-import org.jenkinsci.plugins.qywechat.NotificationUtil;
-import org.jenkinsci.plugins.qywechat.model.NotificationConfig;
 import hudson.model.AbstractBuild;
 import hudson.model.ParameterValue;
 import hudson.model.ParametersAction;
+import hudson.scm.ChangeLogSet;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.plugins.qywechat.NotificationUtil;
+import org.jenkinsci.plugins.qywechat.model.NotificationConfig;
+import org.jenkinsci.plugins.qywechat.utils.BuildUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 开始构建的通知信息
@@ -28,6 +32,7 @@ public class BuildBeginInfo {
      */
     private Map params = new HashMap<String, Object>();
 
+//    private SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     /**
      * 预计时间，毫秒
      */
@@ -91,16 +96,8 @@ public class BuildBeginInfo {
         }
         //修改记录
         List<ChangeLogSet<?>> changeSets = build.getChangeSets();
-        StringBuffer stringBuffer = new StringBuffer();
-        for (ChangeLogSet<?> changeLogSet : changeSets) {
-            for (Object item : changeLogSet.getItems()) {
-                if (item instanceof ChangeLogSet.Entry) {
-                    ChangeLogSet.Entry entry = (ChangeLogSet.Entry) item;
-                    stringBuffer.append("【提交id】" + entry.getCommitId() + "【提交描述】:" + entry.getMsg() + "【提交人】:" + entry.getAuthor());
-                }
-            }
-        }
-        this.changeLog = stringBuffer.toString();
+        String changeLog = BuildUtils.buildChangeLog(changeSets);
+        this.changeLog = changeLog;
     }
 
     public String toJSONString() {
@@ -151,4 +148,23 @@ public class BuildBeginInfo {
     }
 
 
+//    /**
+//     * 构建gitchange 日志
+//     */
+//    public String buildChangeLog(List<ChangeLogSet<?>> changeSets) {
+//        StringBuffer stringBuffer = new StringBuffer();
+//        for (ChangeLogSet<?> changeLogSet : changeSets) {
+//            for (Object item : changeLogSet.getItems()) {
+//                if (item instanceof ChangeLogSet.Entry) {
+//                    ChangeLogSet.Entry entry = (ChangeLogSet.Entry) item;
+//                    stringBuffer.append("【提交描述】:" + entry.getMsg() + "【提交人】:" + entry.getAuthor() + "【提交时间】：" + format.format(new Date(entry.getTimestamp())));
+//                    stringBuffer.append("\n");
+//                }
+//            }
+//        }
+//        if (stringBuffer.length() > 1) {
+//            stringBuffer.delete(stringBuffer.length() - 1, stringBuffer.length());
+//        }
+//        return stringBuffer.toString();
+//    }
 }

@@ -38,6 +38,15 @@ public class BuildOverInfo {
     private String topicName = "";
 
     /**
+     * 改变日志
+     */
+    private String changeLog = "";
+
+    public void setChangeLog(String changeLog) {
+        this.changeLog = changeLog;
+    }
+
+    /**
      * 执行结果
      */
     private Result result;
@@ -68,7 +77,7 @@ public class BuildOverInfo {
             topicName = config.topicName;
         }
         //结果
-        result = run.getResult();
+        result = run.getResult() == null ? run.getPreviousBuild().getResult() : run.getResult();
     }
 
     public String toJSONString() {
@@ -79,6 +88,9 @@ public class BuildOverInfo {
         }
         content.append("<font color=\"info\">【" + this.projectName + "】</font>构建" + getStatus() + "\n");
         content.append(" >构建用时：<font color=\"comment\">" + this.useTimeString + "</font>\n");
+        if (StringUtils.isNotBlank(changeLog)) {
+            content.append("<font color=\"comment\">修改记录:" + this.changeLog + "</font>\n");
+        }
         if (StringUtils.isNotEmpty(this.consoleUrl)) {
             content.append(" >[查看控制台](" + this.consoleUrl + ")");
         }

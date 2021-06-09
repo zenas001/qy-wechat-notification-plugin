@@ -1,5 +1,6 @@
 package org.jenkinsci.plugins.qywechat;
 
+import hudson.scm.ChangeLogSet;
 import org.jenkinsci.plugins.qywechat.model.NotificationConfig;
 import com.arronlong.httpclientutil.exception.HttpProcessException;
 import hudson.model.AbstractProject;
@@ -13,10 +14,12 @@ import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 
+import java.util.List;
 import java.util.logging.Logger;
 
 /**
  * 数据绑定
+ *
  * @author jiaju
  */
 @Symbol("qyWechatNotification")
@@ -111,11 +114,20 @@ public class DescriptorImpl extends BuildStepDescriptor<Publisher> {
         config.proxyPassword = Secret.fromString(proxyPassword);
     }
 
+    public List<ChangeLogSet<?>> getChangeLogSets() {
+        return config.changeLogSets;
+    }
+
+    public void setChangeLogSets(List<ChangeLogSet<?>> changeLogSets) {
+        config.changeLogSets = changeLogSets;
+    }
+
     /**
      * 获取配置，不用于保存
+     *
      * @return
      */
-    public NotificationConfig getUnsaveConfig(){
+    public NotificationConfig getUnsaveConfig() {
         NotificationConfig unsaveConfig = new NotificationConfig();
 
         unsaveConfig.webhookUrl = config.webhookUrl;
@@ -130,21 +142,23 @@ public class DescriptorImpl extends BuildStepDescriptor<Publisher> {
         unsaveConfig.proxyPassword = config.proxyPassword;
 
         unsaveConfig.failNotify = config.failNotify;
+        unsaveConfig.changeLogSets=config.changeLogSets;
         return unsaveConfig;
     }
 
     /**
      * 测试代理连接
+     *
      * @param proxyHost
      * @param proxyPort
      * @param proxyUsername
      * @param proxyPassword
      * @return
      */
-    public FormValidation doTestProxy(@QueryParameter String proxyHost, @QueryParameter int proxyPort, @QueryParameter String proxyUsername, @QueryParameter String proxyPassword){
+    public FormValidation doTestProxy(@QueryParameter String proxyHost, @QueryParameter int proxyPort, @QueryParameter String proxyUsername, @QueryParameter String proxyPassword) {
         String TEST_URL = "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=0";
 
-        if(StringUtils.isEmpty(proxyHost)){
+        if (StringUtils.isEmpty(proxyHost)) {
             return FormValidation.error("服务器不能为空");
         }
 
@@ -154,7 +168,7 @@ public class DescriptorImpl extends BuildStepDescriptor<Publisher> {
         buildConfig.proxyPort = proxyPort;
         buildConfig.proxyUsername = proxyUsername;
         buildConfig.proxyPassword = Secret.fromString(proxyPassword);
-        try{
+        try {
             NotificationUtil.push(TEST_URL, "", buildConfig);
             return FormValidation.ok("测试成功");
         } catch (HttpProcessException e) {
@@ -174,8 +188,8 @@ public class DescriptorImpl extends BuildStepDescriptor<Publisher> {
         config.topicName = json.getString("topicName");
         config.mentionedId = json.getString("mentionedId");
         config.mentionedMobile = json.getString("mentionedMobile");
-        config.useProxy = json.get("useProxy")!=null;
-        if(config.useProxy && json.get("useProxy") instanceof JSONObject){
+        config.useProxy = json.get("useProxy") != null;
+        if (config.useProxy && json.get("useProxy") instanceof JSONObject) {
             JSONObject jsonObject = json.getJSONObject("useProxy");
             config.proxyHost = jsonObject.getString("proxyHost");
             config.proxyPort = jsonObject.getInt("proxyPort");

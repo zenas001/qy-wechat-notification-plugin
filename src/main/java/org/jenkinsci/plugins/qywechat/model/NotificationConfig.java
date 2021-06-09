@@ -1,6 +1,10 @@
 package org.jenkinsci.plugins.qywechat.model;
 
+import hudson.scm.ChangeLogSet;
 import hudson.util.Secret;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 配置项
@@ -20,6 +24,14 @@ public class NotificationConfig {
      * 通知用户手机
      */
     public String mentionedMobile = "";
+    /**
+     * 项目名称
+     * */
+    public String projectName="";
+    /**
+     *
+     * */
+    public List<ChangeLogSet<?>> changeLogSets=new ArrayList<>();
     /**
      * 主题名称
      */
