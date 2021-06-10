@@ -9,11 +9,10 @@ import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.qywechat.NotificationUtil;
 import org.jenkinsci.plugins.qywechat.model.NotificationConfig;
 import org.jenkinsci.plugins.qywechat.utils.BuildUtils;
+import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -96,6 +95,52 @@ public class BuildBeginInfo {
         }
         //修改记录
         List<ChangeLogSet<?>> changeSets = build.getChangeSets();
+        String changeLog = BuildUtils.buildChangeLog(changeSets);
+        this.changeLog = changeLog;
+    }
+
+    public void setChangeLog(String changeLog) {
+        this.changeLog = changeLog;
+    }
+
+    public BuildBeginInfo(String projectName, WorkflowRun workflowRun, NotificationConfig config) {
+        //获取请求参数
+        List<ParametersAction> parameterList = workflowRun.getActions(ParametersAction.class);
+        if (parameterList != null && parameterList.size() > 0) {
+            for (ParametersAction p : parameterList) {
+                for (ParameterValue pv : p.getParameters()) {
+                    this.params.put(pv.getName(), pv.getValue());
+                }
+            }
+        }
+        //预计时间
+        if (workflowRun.getParent().getEstimatedDuration() > 0) {
+            this.durationTime = workflowRun.getParent().getEstimatedDuration();
+        }
+        //控制台地址
+        StringBuilder urlBuilder = new StringBuilder();
+        String jenkinsUrl = NotificationUtil.getJenkinsUrl();
+        if (StringUtils.isNotEmpty(jenkinsUrl)) {
+            String buildUrl = workflowRun.getUrl();
+            urlBuilder.append(jenkinsUrl);
+            if (!jenkinsUrl.endsWith("/")) {
+                urlBuilder.append("/");
+            }
+            urlBuilder.append(buildUrl);
+            if (!buildUrl.endsWith("/")) {
+                urlBuilder.append("/");
+            }
+            urlBuilder.append("console");
+        }
+        this.consoleUrl = urlBuilder.toString();
+        //工程名称
+        this.projectName = projectName;
+        //环境名称
+        if (config.topicName != null) {
+            topicName = config.topicName;
+        }
+        //修改记录
+        List<ChangeLogSet<?>> changeSets = workflowRun.getChangeSets();
         String changeLog = BuildUtils.buildChangeLog(changeSets);
         this.changeLog = changeLog;
     }

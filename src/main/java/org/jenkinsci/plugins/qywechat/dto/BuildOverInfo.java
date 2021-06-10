@@ -77,7 +77,7 @@ public class BuildOverInfo {
             topicName = config.topicName;
         }
         //结果
-        result = run.getResult() == null ? run.getPreviousBuild().getResult() : run.getResult();
+        result = run.getResult();
     }
 
     public String toJSONString() {

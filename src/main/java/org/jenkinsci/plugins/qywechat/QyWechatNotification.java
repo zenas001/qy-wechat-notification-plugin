@@ -9,7 +9,9 @@ import hudson.model.*;
 import hudson.scm.ChangeLogSet;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Notifier;
+import hudson.tasks.Publisher;
 import jenkins.tasks.SimpleBuildStep;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.qywechat.dto.BuildBeginInfo;
 import org.jenkinsci.plugins.qywechat.dto.BuildMentionedInfo;
@@ -19,19 +21,17 @@ import org.jenkinsci.plugins.qywechat.utils.BuildUtils;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
-import org.springframework.util.CollectionUtils;
 
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 企业微信构建通知
  *
  * @author jiaju
  */
-public class QyWechatNotification extends /*Publisher*/ Notifier implements SimpleBuildStep {
+public class QyWechatNotification extends Notifier implements SimpleBuildStep {
 
     private String webhookUrl;
 
@@ -121,28 +121,20 @@ public class QyWechatNotification extends /*Publisher*/ Notifier implements Simp
         if (run instanceof AbstractBuild) {
             this.projectName = run.getParent().getFullDisplayName();
         }
-
-        //构建结束通知
         BuildOverInfo buildInfo = new BuildOverInfo(this.projectName, run, config);
-
-        //todo 这里增加对上一步step 执行结果的判断,兼容流水线使用
-        Object previousStep = run.getPreviousBuild();
-        if (previousStep instanceof WorkflowRun) {
-            //todo git修改记录不为空时,兼容使用流水线脚本
-            WorkflowRun workflowRun = (WorkflowRun) previousStep;
-            while (workflowRun.isBuilding()){
-                listener.getLogger().println("等待上一步执行完成..");
-            }
-            if (!CollectionUtils.isEmpty(workflowRun.getChangeSets())) {
-                String changeLog = BuildUtils.buildChangeLog(workflowRun.getChangeSets());
-                listener.getLogger().println("修改记录:" + changeLog);
+        //构建开始通知
+        if (run instanceof WorkflowRun) {
+            WorkflowRun build = (WorkflowRun) run;
+            //todo 这里如果有日志不往下执行,从pipeline 步骤控制
+            if (!CollectionUtils.isEmpty(build.getChangeSets())) {
+                String changeLog = BuildUtils.buildChangeLog(build.getChangeSets());
                 buildInfo.setChangeLog(changeLog);
-            }
-            if (result == null && workflowRun.getResult() != null) {
-                result = workflowRun.getResult();
+                listener.getLogger().println(String.format("修改记录:%s\n", changeLog));
+                String req = buildInfo.toJSONString();
+                push(listener.getLogger(), config.webhookUrl, req, config);
+                return;
             }
         }
-
         String req = buildInfo.toJSONString();
         listener.getLogger().println("推送通知" + req);
         //推送结束通知
@@ -158,10 +150,8 @@ public class QyWechatNotification extends /*Publisher*/ Notifier implements Simp
             if (StringUtils.isEmpty(config.mentionedId) && StringUtils.isEmpty(config.mentionedMobile)) {
                 return;
             }
-
             //构建@通知
             BuildMentionedInfo consoleInfo = new BuildMentionedInfo(run, config);
-
             req = consoleInfo.toJSONString();
             listener.getLogger().println("推送通知" + req);
             //执行推送
